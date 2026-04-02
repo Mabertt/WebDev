@@ -37,6 +37,14 @@ useSeoMeta({
       </template>
 
       <template #right>
+        <UNavigationMenu
+          :items="[
+            { label: 'Головна', to: '/' },
+            { label: 'Список продуктів', to: '/spisok-produktiv' },
+            { label: 'Таблиця', to: '/tablytsya' }
+          ]"
+          class="mr-4"
+        />
         <UColorModeButton />
 
         <UButton
