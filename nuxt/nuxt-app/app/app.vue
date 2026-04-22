@@ -41,7 +41,8 @@ useSeoMeta({
           :items="[
             { label: 'Головна', to: '/' },
             { label: 'Список продуктів', to: '/spisok-produktiv' },
-            { label: 'Таблиця', to: '/tablytsya' }
+            { label: 'Таблиця', to: '/tablytsya' },
+            { label: 'Оплата', to: '/checkout' }
           ]"
           class="mr-4"
         />

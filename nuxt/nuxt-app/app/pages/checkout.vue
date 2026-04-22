@@ -1,9 +1,22 @@
 <script setup>
+import { reactive, ref, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useSubscriptionStore } from '../../stores/useSubscriptionStore'
+
+const subscriptionStore = useSubscriptionStore()
+
 useHead({
   title: 'Checkout'
 });
 
-const { data: subscriptionData, pending, error } = await useFetch('/api/subscription');
+// Load plans on mount
+onMounted(() => {
+  if (!subscriptionStore.availablePlans.length) {
+    subscriptionStore.fetchPlans()
+  }
+})
+
+const { selectedPlan, isLoading, error, trialDays, termsUrl, supportPhone } = storeToRefs(subscriptionStore)
 
 const form = reactive({
   cardNumber: '',
@@ -44,6 +57,11 @@ const onSubmit = async () => {
     return;
   }
 
+  if (!selectedPlan.value) {
+    submitError.value = 'No plan selected';
+    return;
+  }
+
   isSubmitting.value = true;
   submitError.value = null;
   submitSuccess.value = false;
@@ -52,7 +70,7 @@ const onSubmit = async () => {
     const response = await $fetch('/api/subscription/create', {
       method: 'POST',
       body: {
-        planId: subscriptionData.value?.plan.id,
+        planId: selectedPlan.value.id,
         cardNumber: form.cardNumber.replace(/\s/g, ''),
         expiryDate: form.expiryDate,
         cvc: form.cvc,
@@ -98,31 +116,31 @@ const goBack = () => {
 
     <div class="max-w-5xl mx-auto px-4 py-6">
       <!-- Back link -->
-      <button 
-        @click="goBack" 
+      <button
+        @click="goBack"
         class="text-gray-500 hover:text-gray-700 text-sm mb-6 inline-block"
       >
         &lt;&lt; back
       </button>
 
       <!-- Loading state -->
-      <div v-if="pending" class="text-center py-8">
+      <div v-if="isLoading" class="text-center py-8">
         <p class="text-gray-500">Loading...</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="text-center py-8">
-        <p class="text-red-600">Failed to load data</p>
+        <p class="text-red-600">{{ error }}</p>
       </div>
 
-      <template v-else-if="subscriptionData">
+      <template v-else-if="selectedPlan">
         <!-- Title section -->
         <div class="mb-8">
           <h2 class="text-xl font-bold text-gray-900 mb-1">
-            You're Almost In - Start Your {{ subscriptionData.trialDays }}-Day Free Trial Now!
+            You're Almost In - Start Your {{ trialDays }}-Day Free Trial Now!
           </h2>
           <p class="text-sm text-gray-600">
-            Set up your account to gain instant access! You won't be charged if you decide to cancel within {{ subscriptionData.trialDays }} days
+            Set up your account to gain instant access! You won't be charged if you decide to cancel within {{ trialDays }} days
           </p>
         </div>
 
@@ -140,19 +158,19 @@ const goBack = () => {
           <!-- Left column - Plan -->
           <div class="bg-white rounded-lg shadow-lg border-t-4 border-[#22c55e] p-5">
             <h3 class="text-base font-semibold text-gray-900 mb-4">
-              {{ subscriptionData.plan.name }}
+              {{ selectedPlan.name }}
             </h3>
 
             <div class="mb-4">
-              <p class="text-xs text-gray-500 mb-1">3-days free then:</p>
+              <p class="text-xs text-gray-500 mb-1">{{ trialDays }}-days free then:</p>
               <p class="text-3xl font-bold text-gray-900">
-                {{ formatCurrency(subscriptionData.plan.monthlyPrice) }}<span class="text-sm font-normal text-gray-600">/month</span>
+                {{ subscriptionStore.monthlyPriceFormatted }}<span class="text-sm font-normal text-gray-600">/month</span>
               </p>
               <p class="text-xs text-gray-500 mt-1">
-                billed yearly at <span class="line-through text-gray-400">{{ formatCurrency(subscriptionData.plan.originalYearlyPrice) }}</span> {{ formatCurrency(subscriptionData.plan.yearlyPrice) }}
+                billed yearly at <span class="line-through text-gray-400">{{ formatCurrency(selectedPlan.originalYearlyPrice) }}</span> {{ subscriptionStore.yearlyPriceFormatted }}
               </p>
               <span class="inline-block mt-2 bg-[#dcfce7] text-[#166534] text-xs px-2 py-0.5 rounded">
-                {{ formatCurrency(subscriptionData.plan.savings) }} in savings
+                {{ subscriptionStore.savingsFormatted }} in savings
               </span>
             </div>
 
@@ -160,11 +178,11 @@ const goBack = () => {
 
             <ul class="space-y-2 text-sm">
               <li
-                v-for="(feature, index) in subscriptionData.plan.features"
+                v-for="(feature, index) in selectedPlan.features"
                 :key="index"
                 class="flex items-start"
               >
-                <span class="text-[#22c55e] mr-2 text-xs mt-0.5">✦</span>
+                <span class="text-[#22c55e] mr-2 text-xs mt-0.5">?</span>
                 <span class="text-gray-700 text-sm">
                   {{ feature.text }}
                   <span v-if="feature.subtext" class="block text-xs text-gray-500">{{ feature.subtext }}</span>
@@ -180,13 +198,13 @@ const goBack = () => {
             <div class="space-y-2 text-sm mb-4">
               <div class="flex justify-between">
                 <span class="text-gray-700">Annual Plan</span>
-                <span class="text-gray-900">{{ formatCurrency(subscriptionData.plan.yearlyPrice) }}</span>
+                <span class="text-gray-900">{{ subscriptionStore.yearlyPriceFormatted }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-700 text-xs">
                   Total Due <span class="text-gray-400">(*not including sales tax where applicable)</span>
                 </span>
-                <span class="text-gray-900">{{ formatCurrency(subscriptionData.plan.yearlyPrice) }}</span>
+                <span class="text-gray-900">{{ subscriptionStore.yearlyPriceFormatted }}</span>
               </div>
               <div class="flex justify-between font-medium">
                 <span class="text-gray-700">Due Today</span>
@@ -195,7 +213,7 @@ const goBack = () => {
             </div>
 
             <div class="bg-gray-100 rounded p-2 text-center mb-5">
-              <p class="text-sm text-gray-700">Includes 3-Day Free Trial</p>
+              <p class="text-sm text-gray-700">Includes {{ trialDays }}-Day Free Trial</p>
             </div>
 
             <h3 class="text-base font-semibold text-gray-900 mb-3">
@@ -261,7 +279,7 @@ const goBack = () => {
                   class="mt-0.5 mr-2"
                 />
                 <label class="text-xs text-gray-600 leading-relaxed">
-                  I consent to <a href="#" class="text-gray-900 underline">Terms of Use</a> and understand my {{ subscriptionData.trialDays }}-day free trial will automatically convert to {{ formatCurrency(subscriptionData.plan.yearlyPrice) }} per year starting on 04/02/2026. The yearly fee will be automatically charged each year going forward unless I cancel my account at least one (1) business day before the end of the current billing period, which can be done by calling {{ subscriptionData.supportPhone }}.
+                  I consent to <a href="#" class="text-gray-900 underline">Terms of Use</a> and understand my {{ trialDays }}-day free trial will automatically convert to {{ subscriptionStore.yearlyPriceFormatted }} per year starting on 04/02/2026. The yearly fee will be automatically charged each year going forward unless I cancel my account at least one (1) business day before the end of the current billing period, which can be done by calling {{ supportPhone }}.
                 </label>
               </div>
 

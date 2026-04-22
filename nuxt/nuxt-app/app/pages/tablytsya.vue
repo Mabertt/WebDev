@@ -18,36 +18,43 @@ const sort = ref({
 
 const columns = [
   {
+    id: 'thumbnail',
     key: 'thumbnail',
     label: 'Фото',
     sortable: false
   },
   {
+    id: 'title',
     key: 'title',
     label: 'Назва',
     sortable: true
   },
   {
+    id: 'description',
     key: 'description',
     label: 'Опис',
     sortable: true
   },
   {
+    id: 'price',
     key: 'price',
     label: 'Ціна',
     sortable: true
   },
   {
+    id: 'rating',
     key: 'rating',
     label: 'Оцінка',
     sortable: true
   },
   {
+    id: 'brand',
     key: 'brand',
     label: 'Бренд',
     sortable: true
   },
   {
+    id: 'category',
     key: 'category',
     label: 'Категорія',
     sortable: true

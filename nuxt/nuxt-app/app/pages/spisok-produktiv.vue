@@ -1,7 +1,25 @@
 <script setup>
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useSubscriptionStore } from '../../stores/useSubscriptionStore'
+
 definePageMeta({
-  title: 'Список продуктів'
+  title: 'Products List'
 })
+
+const subscriptionStore = useSubscriptionStore()
+
+// Load plans on mount
+onMounted(() => {
+  subscriptionStore.fetchPlans()
+})
+
+const { selectedPlan, availablePlans, isLoading, error } = storeToRefs(subscriptionStore)
+
+const selectPlanAndGoToCheckout = (plan) => {
+  subscriptionStore.selectPlan(plan)
+  navigateTo('/checkout')
+}
 </script>
 
 <template>
